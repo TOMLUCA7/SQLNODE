@@ -6,42 +6,79 @@ import Account from './models/account.js';
 
 const router = express.Router();
 
+// אימות של המשתמש(קוד, שם משתמש)
+router.put('/verify', async(request,response) => {
+    const { email,passcode } = request.body;
+    const acc = await Account.findAll({where: {email: email}});
+    if(acc.length > 0){
+        const user = acc[0];
+        if(parseInt(user.passcode) === parseInt(passcode)){
+            acc[0].isApproved = true;
+            return acc[0].save()
+            .then(account_update => {
+                return response.status(200).json({
+                    mas: account_update
+                });
+            })
+            .catch(error => {
+                return response.status(500).json({
+                    mas: error
+                });
+            })
+        } else {
+            return response.status(200).json({
+                mas: 'passcode is not match'
+            });
+        }
+    } else {
+        return response.status(200).json({
+            mas: 'account is not exist'
+        });
+    }
+})
 
-// router.post('/login', async(request,response) => {
-//     const { email,password } = request.body;
-//     const acc = await Account.findAll({where: {email: email}});
-//     if(acc.length > 0){
-//         const user = acc[0];
-//         if(user.isApproved){
-//             const ispasswordmath = await bcryptjs.compare(password,user.password)
-//             if(ispasswordmath){
-//                 // אזה מידע לאכסן
-//                 const data = {
-//                     firs_name: user.firs_name,
-//                     last_name: user.last_name,
-//                     email: user.email,
-//                     id: user.id
-//                 }
-
-//                 const token = await jwt.sign(data, 'vzAAtMoDXt');
-//                 return response.status(200).json({
-//                     mas: token
-//                 });
 
 
-//             } else {
-//                 return response.status(200).json({
-//                     mas: 'password is not math '
-//                 });
-//             }
-//         }
-//     } else {
-//         return response.status(200).json({
-//             mas: 'account not exist'
-//         });
-//     }
-// })
 
+router.post('/login', async(request,response) => {
+    const { email,password } = request.body;
+    const acc = await Account.findAll({where: {email: email}});
+    if(acc.length > 0){
+        const user = acc[0];
+        if(user.isApproved){
+            const ispasswordmath = await bcryptjs.compare(password,user.password);
+            if(ispasswordmath){
+                 // אזה מידע לאכסן
+                 const data = {
+                    firs_name: user.firs_name,
+                    last_name: user.last_name,
+                    email: user.email,
+                    id: user.id
+                }
+                // יצירת תוקן
+                const token = await jwt.sign(data, 'vzAAtMoDXt');
+                return response.status(200).json({
+                    mas: token
+                });
+
+            } else {
+                return response.status(200).json({
+                    mas: 'passwoed is not match'
+                });
+            }
+
+        } else {
+            return response.status(200).json({
+                mas: 'account was not approved '
+            });
+        }
+
+    } else {
+        return response.status(200).json({
+            mas: 'account not exist'
+        });
+    }
+})
 
 
 // לבדוק האם מידע קיים ב db
